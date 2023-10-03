@@ -1,113 +1,218 @@
-import Image from 'next/image'
+"use client";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import Image from "next/image";
+import Header from "@/components/shared/Header";
+import { ArrowBottomRightIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ethers } from "ethers";
+import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+
+declare global {
+  interface Window {
+    ethereum: any;
+  }
+}
 
 export default function Home() {
+  const formSchema = z.object({
+    amount: z.number().min(2, {
+      message: "Amount should be required",
+    }),
+    walletAddress: z.string().min(2, {
+      message: "Wallet Address should be required",
+    }),
+  });
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      amount: 0,
+      walletAddress: "",
+    },
+  });
+  const errors = form.formState.errors;
+  const [loader, setLoader] = useState<boolean>(false);
+  const [message, setMessage] = useState<String>("");
+  const [transaction, setTransaction] = useState<ethers.providers.TransactionResponse | null >(null);
+  const {toast} = useToast()
+  const StartPayment = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoader(true);
+    const formValues = form.getValues();
+    console.log(formValues);
+    try {
+      if (!window.ethereum) {
+        throw new Error("No crypto wallet found. Please install it.");
+      }
+      await window.ethereum.send("eth_requestAccounts");
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const network = await provider.getNetwork();
+      if (!network.ensAddress) {
+        throw new Error("Network does not support ENS. Change to required");
+      }
+      const transactionResponse = await signer.sendTransaction({
+        to:  formValues.walletAddress,
+        value:  ethers.utils.parseEther(formValues.amount.toString())
+      });
+  
+      console.log({transactionResponse});
+      setTransaction(transactionResponse);
+      console.log(transactionResponse)
+      setLoader(false);
+      setMessage("Transaction was successfully completed");
+      toast({
+        title: "Complex",
+        description: message,
+      });
+      form.setValue("amount", 0);
+      form.setValue("walletAddress", "");
+    } catch (error: any) {
+      console.log({ error });
+      setLoader(false);
+      setMessage(error.message ?? "Transaction was not completed");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+        action: <ToastAction altText="Try again">Try again</ToastAction>
+      })
+    } finally {
+      setLoader(false);
+      setMessage("");
+    }
+  };
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
+    <main>
+      <Header />
+      <section className="flex flex-col md:flex-row justify-between items-center py-24 px-4 lg:px-20">
+        <div>
+          <div className="flex flex-row gap-x-4">
             <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+              src="/assets/logo.png"
+              alt="Myvtial"
+              width={24}
+              height={32}
             />
-          </a>
+            <span className="font-extrabold text-primary text-xl inline-flex gap-x-4">
+              Jump Start your portofolio{" "}
+              <span>
+                <ArrowBottomRightIcon style={{ fontSize: 32 }} />
+              </span>
+            </span>
+          </div>
+          <div className="max-w-[50vw]  my-4">
+            <h1 className="lg:text-8xl text-2xl font-semibold">
+              Jump start your crypto testing!
+            </h1>
+            <p className="py-10">
+              Are you ready to dive into the exciting world of cryptocurrencies
+              but don't know where to start? Look no further! Our Crypto Testing
+              Accelerator is here to supercharge your crypto testing journey and
+              help you gain hands-on experience with digital assets, blockchain
+              technology, and decentralized finance (DeFi) platforms.
+            </p>
+          </div>
+          <div>
+            <Button className="border-2 flex flex-row gap-x-6 bg-transparent text-primary border-primary p-10 rounded-full ">
+              <GitHubLogoIcon fontSize={20}/>
+              <span className="font-bold">Explore On Github</span>
+            </Button>
+          </div>
         </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+        <div className="bg-black/2 shadow-lg mt-6 md:mt-0 min-w-[30vw] py-6 px-6 h-1/2">
+          <Form {...form}>
+            <form method="POST" onSubmit={StartPayment} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        className={`py-6 border focus:border-primary ${
+                          errors.amount ? "border-red-500" : ""
+                        }`}
+                        placeholder="USD"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Enter the desired public amount in USD.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="walletAddress"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Wallet Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        className={`py-6 border focus:border-primary ${
+                          errors.walletAddress ? "border-red-500" : ""
+                        }`}
+                        placeholder=""
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Enter the desired public wallet address.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button
+                type="submit"
+                className="bg-primary font-semibold py-6 w-full my-6 hover:bg-indigo-500"
+              >
+                {loader ? (
+                  <div role="status">
+                    <svg
+                      aria-hidden="true"
+                      className="inline w-8 h-8 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-yellow-400"
+                      viewBox="0 0 100 101"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                        fill="currentColor"
+                      />
+                      <path
+                        d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                        fill="currentFill"
+                      />
+                    </svg>
+                    <span className="sr-only">Loading...</span>
+                  </div>
+                ) : (
+                  <span>Continue the transaction</span>
+                )}
+              </Button>
+            </form>
+          </Form>
+        </div>
+      </section>
     </main>
-  )
+  );
 }
