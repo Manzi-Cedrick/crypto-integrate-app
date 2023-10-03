@@ -52,7 +52,6 @@ export default function Home() {
     event.preventDefault();
     setLoader(true);
     const formValues = form.getValues();
-    console.log(formValues);
     try {
       if (!window.ethereum) {
         throw new Error("No crypto wallet found. Please install it.");
@@ -68,10 +67,25 @@ export default function Home() {
         to:  formValues.walletAddress,
         value:  ethers.utils.parseEther(formValues.amount.toString())
       });
-  
-      console.log({transactionResponse});
-      setTransaction(transactionResponse);
-      console.log(transactionResponse)
+      const contract = await new ethers.Contract(
+        "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        ["function transfer(address to, uint256 amount) public returns (bool)"],
+        signer
+      ).catch((error:any) => {
+        // Handle the `contract not deployed` error.
+        if (error.code === "UNSUPPORTED_OPERATION") {
+          setMessage("Contract not deployed.");
+        } else {
+          setMessage(error.message);
+        }
+        throw error;
+      });
+      const transaction = await contract.transfer(
+        formValues.walletAddress,
+        formValues.amount
+      );
+      await transaction.wait();
+      setTransaction(transaction.wait());
       setLoader(false);
       setMessage("Transaction was successfully completed");
       toast({
@@ -81,13 +95,13 @@ export default function Home() {
       form.setValue("amount", 0);
       form.setValue("walletAddress", "");
     } catch (error: any) {
-      console.log({ error });
+      reportError(error)
       setLoader(false);
       setMessage(error.message ?? "Transaction was not completed");
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: message + error.message,
         action: <ToastAction altText="Try again">Try again</ToastAction>
       })
     } finally {
