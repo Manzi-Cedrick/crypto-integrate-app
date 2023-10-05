@@ -151,7 +151,7 @@ export default function Home() {
             </h1>
             <p className="py-10 text-lg">
               Are you ready to dive into the exciting world of cryptocurrencies
-              but don't know where to start? Look no further! Our Crypto Testing
+              but do &apos; know where to start? Look no further! Our Crypto Testing
               Accelerator is here to supercharge your crypto testing journey and
               help you gain hands-on experience with digital assets, blockchain
               technology, and decentralized finance (DeFi) platforms.
