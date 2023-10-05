@@ -64,7 +64,7 @@ const Header = () => {
             </ul>
                 <div
                     className={`${showMenu ? 'flex' : 'hidden md:flex'} md:flex-row gap-4 w-full items-center justify-end z-20 mb-10 md:mb-0 text-base flex-col`}>
-                    <button onClick={() => navigate.push('/register')}
+                    <button onClick={() => navigate.push('/')}
                             className='text-white  bg-primary flex items-center flex-row py-3 px-8 rounded-full active:bg-primary'>Get Started
                     </button>
                 </div>
