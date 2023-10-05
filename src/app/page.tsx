@@ -13,13 +13,19 @@ import {
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import Header from "@/components/shared/Header";
-import { ArrowBottomRightIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
+import {
+  ArrowBottomRightIcon,
+  GitHubLogoIcon,
+  RocketIcon,
+} from "@radix-ui/react-icons";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ethers } from "ethers";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
+import { useRouter } from "next/navigation";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 declare global {
   interface Window {
@@ -38,101 +44,112 @@ export default function Home() {
   });
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      amount: 0,
-      walletAddress: "",
-    },
   });
   const errors = form.formState.errors;
   const [loader, setLoader] = useState<boolean>(false);
   const [message, setMessage] = useState<String>("");
-  const [transaction, setTransaction] = useState<ethers.providers.TransactionResponse | null >(null);
-  const {toast} = useToast()
+  const [transaction, setTransaction] =
+    useState<ethers.providers.TransactionResponse | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
   const StartPayment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoader(true);
     const formValues = form.getValues();
-    try {
-      if (!window.ethereum) {
-        throw new Error("No crypto wallet found. Please install it.");
-      }
-      await window.ethereum.send("eth_requestAccounts");
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const network = await provider.getNetwork();
-      if (!network.ensAddress) {
-        throw new Error("Network does not support ENS. Change to required");
-      }
-      const transactionResponse = await signer.sendTransaction({
-        to:  formValues.walletAddress,
-        value:  ethers.utils.parseEther(formValues.amount.toString())
-      });
-      const contract = await new ethers.Contract(
-        "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-        ["function transfer(address to, uint256 amount) public returns (bool)"],
-        signer
-      ).catch((error:any) => {
-        // Handle the `contract not deployed` error.
-        if (error.code === "UNSUPPORTED_OPERATION") {
-          setMessage("Contract not deployed.");
+    const validation ={
+      success : () => {
+        if (formValues.amount >= 0 && formValues.walletAddress.length > 0) {
+          return true;
         } else {
-          setMessage(error.message);
+          setMessage("Please fill all the fields");
+          return false;
         }
-        throw error;
-      });
-      const transaction = await contract.transfer(
-        formValues.walletAddress,
-        formValues.amount
-      );
-      await transaction.wait();
-      setTransaction(transaction.wait());
-      setLoader(false);
-      setMessage("Transaction was successfully completed");
-      toast({
-        title: "Complex",
-        description: message,
-      });
-      form.setValue("amount", 0);
-      form.setValue("walletAddress", "");
-    } catch (error: any) {
-      reportError(error)
-      setLoader(false);
-      setMessage(error.message ?? "Transaction was not completed");
+      },
+    }
+    if (validation.success()) {
+      try {
+        if (!window.ethereum) {
+          throw new Error("No crypto wallet found. Please install it.");
+        }
+        await window.ethereum.send("eth_requestAccounts");
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const network = await provider.getNetwork();
+        if (!network.ensAddress) {
+          throw new Error("Network does not support ENS. Change to required");
+        }
+        const transactionResponse = await signer.sendTransaction({
+          to: formValues.walletAddress,
+          value: ethers.utils.parseEther(formValues.amount.toString()),
+        });
+        const contract = await new ethers.Contract(
+          "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+          [
+            "function transfer(address to, uint256 amount) public returns (bool)",
+          ],
+          signer
+        ).catch((error: any) => {
+          if (error.code === "UNSUPPORTED_OPERATION") {
+            setMessage("Contract not deployed.");
+          } else {
+            setMessage(error.message);
+          }
+          throw error;
+        });
+        const transaction = await contract.transfer(
+          formValues.walletAddress,
+          formValues.amount
+        );
+        await transaction.wait();
+        setTransaction(transaction.wait());
+        setLoader(false);
+        setMessage("Transaction was successfully completed");
+        toast({
+          title: "Complex",
+          description: message,
+        });
+        form.setValue("amount", 0);
+        form.setValue("walletAddress", "");
+      } catch (error: any) {
+        reportError(error);
+        setLoader(false);
+        setMessage(error.message ?? "Transaction was not completed");
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: message + error.message,
+          action: <ToastAction altText="Try again">Try again</ToastAction>,
+        });
+      } finally {
+        setLoader(false);
+        setMessage("");
+      }
+    } else {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: message + error.message,
-        action: <ToastAction altText="Try again">Try again</ToastAction>
-      })
-    } finally {
+        title: "Validation Error",
+        description: message,
+        action: <ToastAction altText="Try again">Try again</ToastAction>,
+      });
       setLoader(false);
-      setMessage("");
     }
   };
   return (
     <main>
       <Header />
-      <section className="flex flex-col md:flex-row justify-between items-center py-24 px-4 lg:px-20">
+      <section className="flex flex-col gap-y-20 lg:flex-row justify-between items-center py-24 px-4 lg:px-20">
         <div>
-          <div className="flex flex-row gap-x-4">
-            <Image
-              src="/assets/logo.png"
-              alt="Myvtial"
-              width={24}
-              height={32}
-            />
+          <div className="flex flex-row items-center gap-x-4">
+            <span className="text-5xl">🚀</span>
             <span className="font-extrabold text-primary text-xl inline-flex gap-x-4">
-              Jump Start your portofolio{" "}
-              <span>
-                <ArrowBottomRightIcon style={{ fontSize: 32 }} />
-              </span>
+              Jump Start your Crypto-experience{" "}
             </span>
           </div>
-          <div className="max-w-[50vw]  my-4">
-            <h1 className="lg:text-8xl text-2xl font-semibold">
+          <div className="sm:max-w-[50vw] w-full my-4">
+            <h1 className="lg:text-7xl xl:text-8xl text-2xl md:text-5xl font-semibold">
               Jump start your crypto testing!
             </h1>
-            <p className="py-10">
+            <p className="py-10 text-lg">
               Are you ready to dive into the exciting world of cryptocurrencies
               but don't know where to start? Look no further! Our Crypto Testing
               Accelerator is here to supercharge your crypto testing journey and
@@ -141,13 +158,27 @@ export default function Home() {
             </p>
           </div>
           <div>
-            <Button className="border-2 flex flex-row gap-x-6 bg-transparent text-primary border-primary p-10 rounded-full ">
-              <GitHubLogoIcon fontSize={20}/>
+            <Button
+              onClick={() =>
+                router.push(
+                  "https://github.com/Manzi-Cedrick/crypto-integrate-app"
+                )
+              }
+              className="border-2 flex flex-row gap-x-6 bg-transparent text-primary border-primary p-10 rounded-full "
+            >
+              <GitHubLogoIcon fontSize={20} />
               <span className="font-bold">Explore On Github</span>
             </Button>
           </div>
         </div>
         <div className="bg-black/2 shadow-lg mt-6 md:mt-0 min-w-[30vw] py-6 px-6 h-1/2">
+          <Alert>
+            <RocketIcon className="h-4 w-4" />
+            <AlertTitle>Heads up!</AlertTitle>
+            <AlertDescription>
+              Make sure you have funds on your ETH Address or Test with 0 !
+            </AlertDescription>
+          </Alert>
           <Form {...form}>
             <form method="POST" onSubmit={StartPayment} className="space-y-4">
               <FormField
@@ -169,7 +200,11 @@ export default function Home() {
                     <FormDescription>
                       Enter the desired public amount in USD.
                     </FormDescription>
-                    <FormMessage />
+                    {errors.amount && (
+                      <FormMessage className="text-red-500">
+                        {errors.amount.message}
+                      </FormMessage>
+                    )}
                   </FormItem>
                 )}
               />
@@ -191,7 +226,11 @@ export default function Home() {
                     <FormDescription>
                       Enter the desired public wallet address.
                     </FormDescription>
-                    <FormMessage />
+                    {errors.walletAddress && (
+                      <FormMessage className="text-red-500">
+                        {errors.walletAddress.message}
+                      </FormMessage>
+                    )}
                   </FormItem>
                 )}
               />
