@@ -52,13 +52,31 @@ export default function Home() {
     useState<ethers.providers.TransactionResponse | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const validateWalletAdress = async (walletAddress: string) => {
+    if (!window.ethereum) {
+      throw new Error("No crypto wallet found. Please install it.");
+    }
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const accounts = provider.listAccounts();
+    if (!(await accounts).includes(walletAddress)) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Wallet address is not connected to Metamask Ethereum!",
+        action: <ToastAction altText="Try again">Try again</ToastAction>,
+      })
+      setLoader(false);
+      throw new Error("Wallet address is not connected to Metamask Ethereum.");
+    }
+    return true;
+  };
   const StartPayment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoader(true);
     const formValues = form.getValues();
     const validation ={
-      success : () => {
-        if (formValues.amount >= 0 && formValues.walletAddress.length > 0) {
+      success : async () => {
+        if (formValues.amount >= 0 && formValues.walletAddress.length > 0 && formValues.walletAddress.includes("0x") && await validateWalletAdress(formValues.walletAddress)) {
           return true;
         } else {
           setMessage("Please fill all the fields");
@@ -66,11 +84,8 @@ export default function Home() {
         }
       },
     }
-    if (validation.success()) {
+    if (await validation.success()) {
       try {
-        if (!window.ethereum) {
-          throw new Error("No crypto wallet found. Please install it.");
-        }
         await window.ethereum.send("eth_requestAccounts");
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
