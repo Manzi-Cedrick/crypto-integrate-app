@@ -28,10 +28,10 @@ const Header = () => {
     }, [showMenu]);
     return (
         <div
-            className='flex md:flex-row flex-col md:justify-between justify-between z-20 items-center border-b-2 border-gray-100 py-2 px-2 sm:px-2 lg:px-44 xl:px-20'>
-            <div className='flex flex-row justify-between items-center px-4 md:px-0'>
+            className='flex md:flex-row flex-col md:justify-between justify-around z-20 items-center border-b-2 border-gray-100 py-2 px-0 sm:px-14 lg:px-16 xl:px-20'>
+            <div className='flex flex-row w-full justify-between items-center px-4 md:px-0'>
                 <Logo/>
-                <div className='flex md:hidden'>
+                <div className='flex justify-end md:hidden'>
                     <button onClick={
                         () => setShowMenu(!showMenu)
                     }
@@ -43,7 +43,7 @@ const Header = () => {
 
                 </div>
             </div>
-            <ul className={`${showMenu ? 'flex' : 'hidden md:flex'} z-20 md:flex-row py-10 md:py-0 flex-col items-center justify-end w-full mx-auto gap-6`}>
+            <ul className={`${showMenu ? 'flex' : 'hidden md:flex'} z-20 md:flex-row py-10 md:py-0 flex-col items-center w-full justify-end  mx-auto gap-6`}>
                 {
                     headerRoutes.map((path, index) => (
                         <Link key={index}
@@ -63,7 +63,7 @@ const Header = () => {
                 }
             </ul>
                 <div
-                    className={`${showMenu ? 'flex' : 'hidden md:flex'} md:flex-row gap-4 w-full items-center justify-end z-20 text-base flex-col`}>
+                    className={`${showMenu ? 'flex' : 'hidden md:flex'} md:flex-row gap-4 w-full items-center justify-end z-20 mb-10 md:mb-0 text-base flex-col`}>
                     <button onClick={() => navigate.push('/register')}
                             className='text-white  bg-primary flex items-center flex-row py-3 px-8 rounded-full active:bg-primary'>Get Started
                     </button>
