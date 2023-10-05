@@ -11,12 +11,12 @@ export const headerRoutes: IHeaderRoute[] = [
     },
     {
         name: "Explore",
-        href: "/explore",
+        href: "https://github.com/Manzi-Cedrick",
         exact: false,
     },
     {
         name: "Connect Developer",
-        href: "/application-status",
+        href: "https://www.linkedin.com/in/manzi-cedrick",
         exact: false,
     }
 ]
