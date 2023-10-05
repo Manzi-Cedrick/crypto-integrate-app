@@ -117,7 +117,7 @@ export default function Home() {
         toast({
           variant: "destructive",
           title: "Error",
-          description: message + error.message,
+          description: message + error.message || error.message === "No crypto wallet found. Please install it." ? "No crypto wallet found. Please install it.Add MetaMask Extension with Ethereum Chain.": "",
           action: <ToastAction altText="Try again">Try again</ToastAction>,
         });
       } finally {
